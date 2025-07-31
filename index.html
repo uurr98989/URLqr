@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Free online QR code generator - Create QR codes instantly without ads or tracking. Generate QR codes for URLs, text, and more with customizable size and error correction.">
+    <meta name="robots" content="index, follow">
+    <!-- Delete analytics if self hosting -->
+    <!-- <script defer src="https://umami.lkly.net/script.js" data-website-id="044c27d8-09c0-4252-bb4f-ecd67162bce9"></script> -->
+    <title>Free QR Code Generator - Create QR Codes Instantly | FreeQR</title>
+    <script>
+        (function() {
+            const storedPreference = localStorage.getItem('darkMode');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (storedPreference === 'true' || (!storedPreference && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Leckerli+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              fontFamily: {
+                pacifico: ['Leckerli One', 'cursive'],
+                sans: ['Work Sans', 'system-ui', 'sans-serif']
+              }
+            }
+          }
+        }
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <style>
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: #111827; 
+            z-index: -10; 
+            transform: translateX(-100%);
+            transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        html.dark body::before {
+            transform: translateX(0%);
+        }
+
+        body {
+            position: relative; 
+            z-index: 1;
+            background-color: transparent; 
+            transition: background-color 0.5s ease; 
+        }
+
+        [x-cloak] { display: none !important; }
+
+        .dark-mode-toggle {
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 9999px;
+            background-color: #e5e7eb;
+            transition: background-color 0.2s ease;
+        }
+        html.dark .dark-mode-toggle {
+            background-color: #4b5563;
+        }
+        .dark-mode-toggle .toggle-circle {
+            display: block;
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 9999px;
+            background-color: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease;
+        }
+        html.dark .dark-mode-toggle .toggle-circle {
+            transform: translateX(1.25rem);
+            background-color: #374151;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
+    <div x-data="{
+        text: '',
+        size: 400,
+        errorCorrectionLevel: 'M',
+        foregroundColor: '#000000',
+        backgroundColor: '#ffffff',
+        backgroundTransparent: false,
+        isDarkMode: false,
+        toggleClickCount: 0,
+        toggleClickTimer: null,
+        showToggleMessage: false,
+
+        initDarkMode() {
+            this.isDarkMode = document.documentElement.classList.contains('dark');
+        },
+        toggleDarkMode() {
+            this.isDarkMode = !this.isDarkMode;
+            this.applyDarkMode();
+            localStorage.setItem('darkMode', this.isDarkMode);
+
+            // Increment click counter
+            this.toggleClickCount++;
+            
+            // Clear existing timer
+            if (this.toggleClickTimer) {
+                clearTimeout(this.toggleClickTimer);
+            }
+            
+            // Show message if clicked too many times
+            if (this.toggleClickCount >= 5) {
+                this.showToggleMessage = true;
+                setTimeout(() => {
+                    this.showToggleMessage = false;
+                }, 3000);
+                this.toggleClickCount = 0;
+            }
+            
+            // Reset counter after 3 seconds of no clicks
+            this.toggleClickTimer = setTimeout(() => {
+                this.toggleClickCount = 0;
+            }, 3000);
+        },
+        applyDarkMode() {
+            if (this.isDarkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        },
+        generateQR() {
+            if (!this.text) return;
+            const qr = qrcode(0, this.errorCorrectionLevel);
+            qr.addData(this.text);
+            qr.make();
+            const svgTag = qr.createSvgTag(8); 
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = svgTag;
+            const svg = tempDiv.firstChild;
+            const rect = svg.querySelector('rect');
+            if (rect) {
+                rect.setAttribute('fill', this.backgroundTransparent ? 'none' : this.backgroundColor);
+            }
+            const path = svg.querySelector('path');
+            if (path) {
+                path.setAttribute('fill', this.foregroundColor);
+            }
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            document.getElementById('qrcode').innerHTML = svg.outerHTML;
+        },
+        downloadPNG() {
+            if (!this.text) return;
+            const qr = qrcode(0, this.errorCorrectionLevel);
+            qr.addData(this.text);
+            qr.make();
+            const svgTag = qr.createSvgTag(this.size/25);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = svgTag;
+            const svgElement = tempDiv.firstChild;
+            const rect = svgElement.querySelector('rect');
+            if (rect) {
+                rect.setAttribute('fill', this.backgroundTransparent ? 'none' : this.backgroundColor);
+            }
+            const path = svgElement.querySelector('path');
+            if (path) {
+                path.setAttribute('fill', this.foregroundColor);
+            }
+            
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                canvas.width = this.size;
+                canvas.height = this.size;
+                
+                if (!this.backgroundTransparent) {
+                    ctx.fillStyle = this.backgroundColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'qrcode.png';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+            };
+            
+            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+        }
+    }" x-init="initDarkMode(); $watch('text', value => generateQR())" class="flex-grow flex flex-col">
+        <header class="bg-white dark:bg-gray-800 shadow-sm transition-colors duration-300">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-pacifico text-gray-900 dark:text-gray-100 transition-colors duration-300">FreeQR</h1>
+                </div>
+                <div class="flex space-x-4 items-center">
+                    <button @click="toggleDarkMode" class="dark-mode-toggle w-12 h-7 flex items-center" aria-label="Toggle dark mode">
+                        <span class="toggle-circle"></span>
+                    </button>
+                    <!-- Message Popup -->
+                    <div x-show="showToggleMessage" 
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 transform scale-95"
+                        x-transition:enter-end="opacity-100 transform scale-100"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 transform scale-100"
+                        x-transition:leave-end="opacity-0 transform scale-95"
+                        class="absolute top-16 right-4 bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">
+                       Stop playing with the lights! 😄
+                   </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-2xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <!-- 要求1：删除描述文字部分 -->
+            <!-- 
+            <div class="mb-8 text-center bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 transition-colors duration-300">
+                <p class="text-base text-gray-600 dark:text-gray-400 transition-colors duration-300 max-w-xl mx-auto">
+                    Generate QR codes instantly in your browser. Your data never leaves your device. 
+                    Create QR codes for URLs, text, and more with customizable settings.
+                </p>
+            </div>
+            -->
+
+            <div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-300">
+                <div class="mb-6">
+                    <label for="text" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Enter your text or URL</label>
+                    <textarea 
+                        id="text"
+                        x-model="text"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300"
+                        rows="3"
+                        placeholder="Enter text or paste URL here"></textarea>
+                </div>
+
+                <!-- 要求2：隐藏设置选项，保持默认值 -->
+                <!-- 默认值：size: 400, errorCorrectionLevel: 'M', foregroundColor: '#000000', backgroundColor: '#ffffff', backgroundTransparent: false -->
+                <!--
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Download Size</label>
+                        <select 
+                            x-model="size"
+                            @change="generateQR()"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300">
+                            <option value="200">Small (200x200px)</option>
+                            <option value="400">Medium (400x400px)</option>
+                            <option value="800">Large (800x800px)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300 flex items-center gap-2">
+                            Error Correction
+                            <div class="relative" x-data="{ showTooltip: false }">
+                                <button @mouseenter="showTooltip = true" @mouseleave="showTooltip = false" type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                                <div x-show="showTooltip" x-transition class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-lg shadow-lg z-10">
+                                    Error correction allows QR codes to be readable even when partially damaged or obscured. Higher levels add more backup data but make the QR code more complex.
+                                </div>
+                            </div>
+                        </label>
+                        <select 
+                            x-model="errorCorrectionLevel"
+                            @change="generateQR()"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300">
+                            <option value="L">Low (7%)</option>
+                            <option value="M">Medium (15%)</option>
+                            <option value="Q">High (25%)</option>
+                            <option value="H">Highest (30%)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Foreground Color</label>
+                        <input 
+                            type="color" 
+                            x-model="foregroundColor"
+                            @input="generateQR()"
+                            class="w-full h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300"> 
+                    </div>
+
+                    <div> 
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-300">Background Color</label>
+                        <div class="flex items-center gap-2">
+                            <input 
+                                type="color" 
+                                x-model="backgroundColor"
+                                :disabled="backgroundTransparent"
+                                @input="backgroundTransparent = false; generateQR()"
+                                class="flex-grow h-10 px-1 py-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button 
+                                type="button"
+                                @click="backgroundTransparent = !backgroundTransparent; generateQR()"
+                                :class="{ 'bg-blue-100 dark:bg-blue-800 ring-2 ring-blue-500': backgroundTransparent, 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600': !backgroundTransparent }"
+                                class="h-10 px-3 border border-gray-300 dark:border-gray-600 rounded-md flex items-center justify-center transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                aria-label="Toggle transparent background">
+                                <svg width="20" height="20" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current text-gray-500 dark:text-gray-400">
+                                    <defs>
+                                        <pattern id="checkerboard" width="4" height="4" patternUnits="userSpaceOnUse" class="text-gray-300 dark:text-gray-500">
+                                            <rect width="2" height="2" fill="currentColor"/>
+                                            <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
+                                        </pattern>
+                                    </defs>
+                                    <rect width="10" height="10" fill="url(#checkerboard)" />
+                                    <rect width="10" height="10" fill="transparent" stroke="currentColor" stroke-width="0.5"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                 </div>
+                 -->
+
+                <div class="flex justify-center mb-6">
+                    <div id="qrcode" class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg transition-colors duration-300 w-full flex items-center justify-center"></div>
+                </div>
+
+                <div class="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 justify-center" x-show="text">
+                    <button 
+                        @click="const svg = document.querySelector('#qrcode svg'); const blob = new Blob([svg.outerHTML], {type: 'image/svg+xml'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'qrcode.svg'; a.click(); URL.revokeObjectURL(url);"
+                        class="w-full md:w-auto bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-300">
+                        Download SVG
+                    </button>
+                    <button 
+                        @click="downloadPNG()"
+                        class="w-full md:w-auto bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors duration-300">
+                        Download PNG
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center py-4 text-gray-600 dark:text-gray-400 text-sm transition-colors duration-300 bg-white dark:bg-gray-800 shadow-sm mt-auto">
+            <p>Created with ❤️ for the open web. No tracking, no ads, just a helpful tool.</p>
+        </footer>
+    </div>
+</body>
+</html> 
